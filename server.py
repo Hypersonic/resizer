@@ -28,24 +28,30 @@ def index():
 @app.route("/resize", methods=["POST"])
 def resize():
     image_file = request.files.get("image")
-    width_px = int(request.form.get("width_px"))
-    height_px = int(request.form.get("height_px"))
+    size_px = request.form.get("size_px")
+
+    def is_int(value):
+        try:
+            int(value)
+            return True
+        except:
+            return False
 
     constraints = (
-        ((lambda image, _, __: image is not None), "You must upload an image!"),
-        ((lambda _, width, __: width is not None), "You must specify a width!"),
-        ((lambda _, width, __: width > 0), "Width must be positive!"),
-        ((lambda _, __, height: height is not None), "You must specify a height!"),
-        ((lambda _, __, height: height > 0), "Height must be positive!"),
+        ((lambda image, _: image is not None), "You must upload an image!"),
+        ((lambda _, size: size is not None), "You must specify a size!"),
+        ((lambda _, size: is_int(size)), "Size must be an integer!"),
+        ((lambda _, size: int(size) > 0), "Size must be positive!"),
     )
 
     for predicate, error in constraints:
-        if not predicate(image_file, width_px, height_px):
+        if not predicate(image_file, size_px):
             flash("Error: {}".format(error))
             return redirect(url_for("index"))
 
+    size = int(size_px)
     image = Image.open(image_file)
-    resized = image.resize((width_px, height_px))
+    resized = image.resize((size, size))
     png = BytesIO()
     resized.save(png, format="png")
     png.seek(0)
